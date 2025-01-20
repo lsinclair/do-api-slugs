@@ -31,6 +31,11 @@ type k8sResponse struct {
 	RetrievedAt string                  `json:"retrieved_at"`
 }
 
+type databaseResponse struct {
+	Options     *godo.DatabaseOptions `json:"options"`
+	RetrievedAt string                `json:"retrieved_at"`
+}
+
 type sizesResponse struct {
 	Sizes       []godo.Size `json:"sizes"`
 	RetrievedAt string      `json:"retrieved_at"`
@@ -71,6 +76,9 @@ func main() {
 
 	sizeHandler := http.HandlerFunc(handler.sizes)
 	mux.HandleFunc("/sizes", sizeHandler)
+
+	databaseHandler := http.HandlerFunc(handler.database)
+	mux.HandleFunc("/databases", databaseHandler)
 
 	log.Printf("Listening on :%s", port)
 	log.Fatal(http.ListenAndServe(":"+port, mux))
@@ -164,9 +172,35 @@ func (h *handler) k8s(w http.ResponseWriter, r *http.Request) {
 	writeJSONResponse(w, resp)
 }
 
+func (h *handler) database(w http.ResponseWriter, r *http.Request) {
+	options, err := getDatabaseOptions(h.client)
+	if err != nil {
+		log.Println(err.Error())
+		writeJSONError(w, http.StatusInternalServerError)
+		return
+	}
+	timestamp := time.Now().Format("Mon Jan _2 15:04:05 2006 UTC")
+	resp := databaseResponse{
+		Options:     options,
+		RetrievedAt: timestamp,
+	}
+
+	writeJSONResponse(w, resp)
+}
+
 func getOptions(client *godo.Client) (*godo.KubernetesOptions, error) {
 	ctx := context.TODO()
 	options, _, err := client.Kubernetes.GetOptions(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return options, nil
+}
+
+func getDatabaseOptions(client *godo.Client) (*godo.DatabaseOptions, error) {
+	ctx := context.TODO()
+	options, _, err := client.Databases.ListOptions(ctx)
 	if err != nil {
 		return nil, err
 	}
