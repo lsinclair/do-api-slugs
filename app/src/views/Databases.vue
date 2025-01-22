@@ -8,53 +8,47 @@
         <th>Region Available</th>
       </tr>
     </thead>
-    <tbody v-if="data">
-      <tr v-for="database in data" :key="data.Index">
+
+    <p v-if="isLoading">Loading...</p>
+
+    <tbody v-else>
+      <!-- Only a temporary solution; decision on nest data structure TBC -->
+      <tr v-for="database in Object.keys(databases)" :key="database">
         {{
-          database.options
+          database
         }}
       </tr>
     </tbody>
-    <p v-else>Loading...</p>
   </table>
-  <div class="has-text-right" v-if="data.retrieved_at">
-    <span class="has-text-grey-light">Retrieved at: {{ data.retrieved_at }}</span>
+  <div class="has-text-right">
+    <span class="has-text-grey-light">Retrieved at: {{ lastFetched }}</span>
   </div>
   <br />
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref } from 'vue'
 import api from '~/plugins/api'
 
-export default {
-  data() {
-    return {
-      data: [],
-      isLoading: true,
-      isEmpty: false,
-      errored: false,
-    }
-  },
-  filters: {
-    mbToGb: function (value) {
-      return value / 1024
-    },
-  },
-  created() {
-    api
-      .get('/databases')
-      .then((response) => {
-        this.data = response.data
-        console.log(response.data)
-      })
-      .catch((error) => {
-        console.log(error)
-        this.isEmpty = true
-        this.errored = true
-      })
-      .finally(() => {
-        this.isLoading = false
-      })
-  },
+const lastFetched = ref<string>('Never')
+
+const databases = ref([])
+
+const isLoading = ref<boolean>(false)
+
+const fetchDatabases = async () => {
+  try {
+    const { data } = await api.get('/databases')
+
+    databases.value = data.options
+
+    lastFetched.value = data.retrieved_at
+  } catch (err) {
+    console.log(err)
+  } finally {
+    isLoading.value = false
+  }
 }
+
+fetchDatabases()
 </script>
