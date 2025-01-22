@@ -8,8 +8,11 @@
         <th>Region Available</th>
       </tr>
     </thead>
-    <tbody v-if="data">
-      <tr v-for="region in data.regions" :key="region.slug">
+
+    <p v-if="isLoading">Loading...</p>
+
+    <tbody v-else>
+      <tr v-for="region in regions" :key="region.slug">
         <td>{{ region.name }}</td>
         <td>
           <code>{{ region.slug }}</code>
@@ -18,46 +21,36 @@
         <td v-else>Unavailable</td>
       </tr>
     </tbody>
-    <p v-else>Loading...</p>
   </table>
-  <div class="has-text-right" v-if="data.retrieved_at">
-    <span class="has-text-grey-light">Retrieved at: {{ data.retrieved_at }}</span>
+  <div class="has-text-right">
+    <span class="has-text-grey-light">Retrieved at: {{ lastFetched }}</span>
   </div>
   <br />
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref } from 'vue'
 import api from '~/plugins/api'
 
-export default {
-  data() {
-    return {
-      data: [],
-      isLoading: true,
-      isEmpty: false,
-      errored: false,
-    }
-  },
-  filters: {
-    mbToGb: function (value) {
-      return value / 1024
-    },
-  },
-  created() {
-    api
-      .get('/regions')
-      .then((response) => {
-        this.data = response.data
-        console.log(response.data)
-      })
-      .catch((error) => {
-        console.log(error)
-        this.isEmpty = true
-        this.errored = true
-      })
-      .finally(() => {
-        this.isLoading = false
-      })
-  },
+const lastFetched = ref<string>('Never')
+
+const regions = ref([])
+
+const isLoading = ref<boolean>(false)
+
+const fetchRegions = async () => {
+  try {
+    const { data } = await api.get('/regions')
+
+    regions.value = data.regions
+
+    lastFetched.value = data.retrieved_at
+  } catch (err) {
+    console.log(err)
+  } finally {
+    isLoading.value = false
+  }
 }
+
+fetchRegions()
 </script>
