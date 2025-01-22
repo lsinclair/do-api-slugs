@@ -10,8 +10,11 @@
         <th>Min Disk Size</th>
       </tr>
     </thead>
-    <tbody v-if="data">
-      <tr v-for="image in data.images" :key="image.slug">
+
+    <p v-if="isLoading">Loading...</p>
+
+    <tbody v-else>
+      <tr v-for="image in images" :key="image.slug">
         <td>{{ image.id }}</td>
         <td>{{ image.distribution }}</td>
         <td>{{ image.name }}</td>
@@ -21,45 +24,35 @@
         <td>{{ image.min_disk_size }}</td>
       </tr>
     </tbody>
-    <p v-else>Loading...</p>
   </table>
-  <div class="has-text-right" v-if="data.retrieved_at">
-    <span class="has-text-grey-light">Retrieved at: {{ data.retrieved_at }}</span>
+  <div class="has-text-right">
+    <span class="has-text-grey-light">Retrieved at: {{ lastFetched }}</span>
   </div>
 </template>
 
-<script>
+<script lang="ts" setup>
+import { ref } from 'vue'
 import api from '~/plugins/api'
 
-export default {
-  data() {
-    return {
-      data: [],
-      isLoading: true,
-      isEmpty: false,
-      errored: false,
-    }
-  },
-  filters: {
-    mbToGb: function (value) {
-      return value / 1024
-    },
-  },
-  created() {
-    api
-      .get('/images/apps')
-      .then((response) => {
-        this.data = response.data
-        console.log(response.data)
-      })
-      .catch((error) => {
-        console.log(error)
-        this.isEmpty = true
-        this.errored = true
-      })
-      .finally(() => {
-        this.isLoading = false
-      })
-  },
+const lastFetched = ref<string>('Never')
+
+const images = ref([])
+
+const isLoading = ref<boolean>(false)
+
+const fetchImages = async () => {
+  try {
+    const { data } = await api.get('/images/apps')
+
+    images.value = data.images
+
+    lastFetched.value = data.retrieved_at
+  } catch (err) {
+    console.log(err)
+  } finally {
+    isLoading.value = false
+  }
 }
+
+fetchImages()
 </script>
