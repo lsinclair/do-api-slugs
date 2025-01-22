@@ -37,6 +37,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import useSizes from '~/composables/useSizes'
 import api from '~/plugins/api'
 
 const lastFetched = ref<string>('Never')
@@ -45,11 +46,9 @@ const sizes = ref([])
 
 const isLoading = ref<boolean>(false)
 
-const mbToGb = (memory: number): number => {
-  return memory / 1024
-}
+const { mbToGb } = useSizes()
 
-const fetchSizes = async (): void => {
+const fetchSizes = async (): Promise<void> => {
   isLoading.value = true
 
   try {
